@@ -1,4 +1,6 @@
 homepage: "https://stape.io/"
 versions:
+  - sha: d241ecfb75185b464e407937c183beb6837eff3d
+    changeNotes: Add ability set response status code.
   - sha: 3b3d57cf11ee5dd4b3091a77f90445814dd753b2
     changeNotes: Initial release.
