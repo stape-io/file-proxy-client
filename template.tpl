@@ -129,9 +129,15 @@ ___TEMPLATE_PARAMETERS___
     "groupStyle": "ZIPPY_CLOSED",
     "subParams": [
       {
+        "type": "TEXT",
+        "name": "responseStatusCode",
+        "displayName": "Custom HTTP Response Code",
+        "simpleValueType": true
+      },
+      {
         "type": "SIMPLE_TABLE",
         "name": "responseHeaders",
-        "displayName": "Request Headers",
+        "displayName": "Response Headers",
         "simpleTableColumns": [
           {
             "defaultValue": "",
@@ -162,6 +168,8 @@ const setResponseHeader = require('setResponseHeader');
 const setResponseBody = require('setResponseBody');
 const sendHttpGet = require('sendHttpGet');
 const makeTableMap = require('makeTableMap');
+const sha256Sync = require('sha256Sync');
+const makeInteger = require('makeInteger');
 
 const logToConsole = require('logToConsole');
 const getContainerVersion = require('getContainerVersion');
@@ -169,6 +177,7 @@ const containerVersion = getContainerVersion();
 const isDebug = containerVersion.debugMode;
 
 const path = getRequestPath();
+const cacheKey = sha256Sync(data.url);
 
 if (path === data.path) {
     require('claimRequest')();
@@ -178,12 +187,12 @@ if (path === data.path) {
 function runClient()
 {
     if (data.useCache) {
-        const cachedFile = templateDataStorage.getItemCopy('proxy_' + path);
+        const cachedFile = templateDataStorage.getItemCopy('proxy_' + cacheKey);
 
         if (!cachedFile) {
             getFileAndReturnResponse();
         } else {
-            const cachedHeaders = templateDataStorage.getItemCopy('proxy_headers_' + path) || {};
+            const cachedHeaders = templateDataStorage.getItemCopy('proxy_headers_' + cacheKey) || {};
 
             sendResponse(200, cachedHeaders, cachedFile);
         }
@@ -205,17 +214,24 @@ function getFileAndReturnResponse()
     }
 
     sendHttpGet(data.url, (statusCode, originHeaders, file) => {
-        if (statusCode >= 200 && statusCode < 300) {
-            templateDataStorage.setItemCopy('proxy_' + path, file);
-            templateDataStorage.setItemCopy('proxy_headers_' + path, file);
+        if (data.responseStatusCode) {
+            templateDataStorage.setItemCopy('proxy_' + cacheKey, file);
+            templateDataStorage.setItemCopy('proxy_headers_' + cacheKey, originHeaders);
 
-            sendResponse(200, originHeaders, file);
+            sendResponse(makeInteger(data.responseStatusCode), originHeaders, file);
         } else {
-            if (isDebug) {
-                logToConsole('Failed to download a file', file);
-            }
+            if (statusCode >= 200 && statusCode < 300) {
+                templateDataStorage.setItemCopy('proxy_' + cacheKey, file);
+                templateDataStorage.setItemCopy('proxy_headers_' + cacheKey, originHeaders);
 
-            sendResponse(statusCode, originHeaders, file);
+                sendResponse(statusCode, originHeaders, file);
+            } else {
+                if (isDebug) {
+                    logToConsole('Failed to download a file: ', path);
+                }
+
+                sendResponse(statusCode, originHeaders, file);
+            }
         }
     }, requestSettings);
 }
@@ -243,8 +259,6 @@ function sendResponse(statusCode, originHeaders, file)
         }
     }
 
-    logToConsole('file', file);
-    logToConsole('statusCode', statusCode);
     setResponseStatus(statusCode);
     setResponseBody(file);
     returnResponse();
@@ -314,6 +328,9 @@ ___SERVER_PERMISSIONS___
           }
         }
       ]
+    },
+    "clientAnnotations": {
+      "isEditedByUser": true
     },
     "isRequired": true
   },
