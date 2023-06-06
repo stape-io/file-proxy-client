@@ -1,6 +1,6 @@
 # File Proxy Client for Google Tag Manager Server Side
 
-TBD
+This is a sGTM Client for proxying file downloads, useful if you want your frontend to download libraries from your subdomain.
 
 ## Open Source
 
