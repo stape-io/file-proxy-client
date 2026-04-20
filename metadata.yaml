@@ -1,5 +1,8 @@
-homepage: "https://stape.io/"
+homepage: 'https://stape.io/'
+documentation: 'https://github.com/stape-io/file-proxy-client'
 versions:
+  - sha: cd72197fe844e557aa0cc64ee342f093fe5b83ee
+    changeNotes: Add status code validation, fix cache guard, and minor improvements.
   - sha: fde97c77c3d1f758481e5728481c95ef2fa28c58
     changeNotes: Fix issue with proxying headers.
   - sha: d241ecfb75185b464e407937c183beb6837eff3d
